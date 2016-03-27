@@ -5,152 +5,172 @@
  *      Author: daveb
  */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
-#include "wiringPi.h"
+#include <string.h>
+#include "font5x7.h"
+#include "futabaVfd.h"
 
-#define	WR	  23 // header pin 16
-#define	PBUSY 24 // header pin 18
+//static const unsigned char Smile[32] = /***/{ 0x07, 0x1E, 0x30, 0x60, 0x40, 0xCC, 0xCC, 0x80, 0x80, 0xCC,
+///********************************************/0xCC, 0x40, 0x60, 0x30, 0x1E, 0x07, 0xE0, 0x78, 0x0C, 0x06,
+///********************************************/0x62, 0x33, 0x33, 0x39, 0x39, 0x33, 0x33, 0x62, 0x06, 0x0C,
+///********************************************/0x78, 0xE0 };
+static const unsigned char SmileN[32] = /**/{ 0x07, 0xE0, 0x1E, 0x78, 0x30, 0x0C, 0x60, 0x06, 0x40, 0x62,
+/********************************************/0xCC, 0x33, 0xCC, 0x33, 0x80, 0x39, 0x80, 0x39, 0xCC, 0x33,
+/********************************************/0xCC, 0x33, 0x40, 0x62, 0x60, 0x06, 0x30, 0x0C, 0x1E, 0x78,
+/********************************************/0x7, 0xE0 };
+static const unsigned char SmileW[52] = /**/{ 0x03, 0xC0, 0x0C, 0x30, 0x10, 0x08, 0x10, 0x08, 0x20, 0x04,
+/********************************************/0x20, 0x04, 0x40, 0x02, 0x40, 0x62, 0x4C, 0x32, 0x8C, 0x31,
+/********************************************/0x8C, 0x11, 0x8C, 0x19, 0x80, 0x19, 0x80, 0x19, 0x8C, 0x19,
+/********************************************/0x8C, 0x11, 0x8C, 0x31, 0x4C, 0x32, 0x40, 0x62, 0x40, 0x02,
+/********************************************/0x20, 0x04, 0x20, 0x04, 0x10, 0x08, 0x10, 0x08, 0x0C, 0x30,
+/********************************************/0x03, 0xC0 };
 
-#define D0	 4 // header pin  7
-#define D1	17 // header pin 11
-#define D2	27 // header pin 13
-#define D3	22 // header pin 15
-#define D4	 5 // header pin 29
-#define D5	 6 // header pin 31
-#define D6	13 // header pin 33
-#define D7	26 // header pin 37
+//static const unsigned char dude[52] = /****/{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x1C, 0x3E, 0x7F, 0x7F, 0xFF,
+///********************************************/0xC7, 0xFF, 0xFF, 0xFF, 0xFF, 0xC7, 0xFF, 0x7F, 0x7F, 0x3E,
+///********************************************/0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x1F, 0x3F, 0x3F,
+///********************************************/0x7F, 0x7F, 0xFF, 0x7F, 0x3F, 0xBF, 0xBF, 0xBF, 0xBF, 0xBF,
+///********************************************/0xBF, 0xBF, 0xBF, 0x3F, 0x7F, 0xFF, 0x7F, 0x7F, 0x3F, 0x3F,
+///********************************************/0x1F, 0x0F };
+static const unsigned char dude[52] = /****/{ 0x00, 0x0F, 0x00, 0x1F, 0x00, 0x3F, 0x00, 0x3F, 0x00, 0x7F,
+/********************************************/0x1C, 0x7F, 0x3E, 0xFF, 0x7F, 0x7F, 0x7F, 0x3F, 0xFF, 0xBF,
+/********************************************/0xC7, 0xBF, 0xFF, 0xBF, 0xFF, 0xBF, 0xFF, 0xBF, 0xFF, 0xBF,
+/********************************************/0xC7, 0xBF, 0xFF, 0xBF, 0x7F, 0x3F, 0x7F, 0x7F, 0x3E, 0xFF,
+/********************************************/0x1C, 0x7F, 0x00, 0x7F, 0x00, 0x3F, 0x00, 0x3F, 0x00, 0x1F,
+/********************************************/0x00, 0x0F };
 
-static const int dataPins[8] = { D0, D1, D2, D3, D4, D5, D6, D7 };
+void writeDude() {
+	writePixels(26, 2, (unsigned char*) dude);
+}
 
-//////////////////////////
-// Commands - taken from datasheet.
-// Fist value is the number of instructions in a command (including data)
-static const unsigned char CMD_LineFeed[2] = /*********/{ 1, 0x0A };
-static const unsigned char CMD_Home[2] = /*************/{ 1, 0x0B };
-static const unsigned char CMD_DisplayClear[2] = /*****/{ 1, 0x0C };
-static const unsigned char CMD_InitialiseDisplay[3] = { 2, 0x1B, 0x40 };
-static const unsigned char CMD_OverwriteMode[3] = /****/{ 2, 0x1F, 0x01 };
-static const unsigned char CMD_BrightnessLevel[4] = /**/{ 3, 0x1F, 0x58, 0x08 }; // 0x04=[50%], 0x08=[100%]
-static const unsigned char CMD_Proportional[6] = /*****/{ 5, 0x1F, 0x28, 0x67, 0x03, 0x02 };
-static const unsigned char CMD_MagnifyWide[7] = /******/{ 6, 0x1F, 0x28, 0x67, 0x40, 0x03, 0x01 };
-static const unsigned char CMD_MagnifyNormal[7] = /****/{ 6, 0x1F, 0x28, 0x67, 0x40, 0x01, 0x01 };
-static const unsigned char CMD_MagnifyHuge[7] = /******/{ 6, 0x1F, 0x28, 0x67, 0x40, 0x02, 0x02 };
-static const unsigned char CMD_WholeScreenMode[6] = /**/{ 5, 0x1F, 0x28, 0x77, 0x10, 0x1 };
-static const unsigned char CMD_Blink[9] = /************/{ 8, 0x1F, 0x28, 0x61, 0x11, 0x01, 0x40, 0x40, 0x00 };
-static const unsigned char CMD_Scroll[10] = /**********/{ 9, 0x1F, 0x28, 0x61, 0x10, 0x02, 0x00, 0x01, 0x00, 0x00 };
+void scrollingDudes() {
+	int i;
+	for (i = 1; i <= 17; i++) {
+		writeDude();
+		setCursor((30 * i), 0);
+		delayNanoSeconds(25000000);
+	}
 
-void initRPi(void);
-void initOuputPin(int);
-void initPBusyPin(void);
-void initVfd(void);
-void writeString(char *);
-void writeCommand(unsigned char *);
-void writeByte(unsigned char);
-void latchDataToVfd(void);
-void delayNanoSeconds(int);
+	for (;;) {
+		scroll(1);
+		delayNanoSeconds(100000);
+	}
+}
+
+void doScroll(unsigned char source[224], unsigned char destination[224]) {
+	register unsigned int c;
+	for (c = 0; c < 112; ++c) {
+		destination[c] = source[c + 1];
+		destination[112 + c] = source[112 + c + 1];
+	}
+	destination[111] = source[0];
+	destination[223] = source[112];
+}
+
+void writeSineWave() {
+	const long double PI = acos((long double) -1);
+	unsigned char data[224];
+	unsigned char scrollBuffer[224];
+
+	long double interval = (15 * PI) / 360;
+	register unsigned int i;
+	for (i = 0; i <= 111; ++i) {
+		int pixel = (int) floor(sin(interval * i) * 8) + 8;
+		int sinValue = 1 << pixel;
+
+		data[i] = (unsigned char) ((sinValue >> 8) & 0xFF);
+		data[112 + i] = (unsigned char) (sinValue & 0xFF);
+	}
+	writeScreen(data);
+	i = 0;
+	for (;;) {
+		if (i++ % 2 == 0) {
+			doScroll(data, scrollBuffer);
+			writeScreen(scrollBuffer);
+		} else {
+			doScroll(scrollBuffer, data);
+			writeScreen(data);
+		}
+		delayNanoSeconds(100);
+	}
+}
+
+unsigned char* buildStringData(char *text) {
+	register unsigned int length = 0;
+	while (text[length] != 0) {
+		length++;
+	}
+	unsigned char *pixels = malloc(length * 6 * sizeof(unsigned char));
+
+	register unsigned int i = 0;
+	register unsigned int c = 0;
+	while (text[c] != 0) {
+		if (text[c] == 32) { //space
+			pixels[i++] = 0x00; // one pixel gap.
+			pixels[i++] = 0x00; // one pixel gap.
+		} else {
+			for (unsigned char d = 0; d < 5; d++) {
+				unsigned char position = text[c] - 32;
+				unsigned char byte = Font5x7[(position * 5) + d];
+				if (byte > 0) {
+					pixels[i++] = byte;
+				}
+			}
+		}
+		pixels[i++] = 0x00; // one pixel gap.
+		c++;
+	}
+
+	if (i > (255 * 255)) {
+		fprintf(stderr, "Error - too many pixels to render...");
+		i = 255 * 255;
+	}
+
+	unsigned char *data = malloc((2 + i + 224) * sizeof(unsigned char));
+	data[0] = (i & 0xFF); //#no of pixels
+	data[1] = ((i >> 8) & 0xFF); //#no of pixels
+
+	// TODO more efficient copy?
+	for (unsigned char p = 0; p <= i; p++) {
+		data[p + 2 + 112] = pixels[p];
+	}
+	memset(&data[2], 0, 112 * sizeof(unsigned char));
+	memset(&data[2 + i + 112], 0, 112 * sizeof(unsigned char));
+
+	return data;
+}
 
 // sudo apt-get install wiringpi (or install from source)
 // sudo usermod -a gpio [username]
 int main(void) {
 
-	wiringPiSetupSys();
 	initRPi();
 	initVfd();
 
-	writeCommand((unsigned char*) CMD_MagnifyHuge);
-	writeString("Brendan!");
-	delayMicroseconds(5000000); // 5 seconds
+	writeString("This is static text");
+	setCursor(0, 1);
 
-	writeCommand((unsigned char*) CMD_DisplayClear);
-	writeCommand((unsigned char*) CMD_Home);
-	writeCommand((unsigned char*) CMD_MagnifyWide);
-	writeString("Top line");
-	writeCommand((unsigned char*) CMD_Home);
-	writeCommand((unsigned char*) CMD_LineFeed);
-	writeCommand((unsigned char*) CMD_MagnifyNormal);
-	writeString("Welcome to Tomorrow. This is far too long to display! Scrolling scrolling scrolling...");
-	delayMicroseconds(2500000); // 25 seconds
+	unsigned char *buffer = buildStringData("Hello scrolling world!!!!");
+	int size = (buffer[1] * 256) + buffer[0];
+	writePixels(size, 1, &buffer[2 + 112]);
+
+	int fwd = 1;
+	int location = 0;
 	for (;;) {
-		writeCommand((unsigned char*) CMD_Scroll);
-		delayMicroseconds(10000);
+		writePixels(112, 1, &buffer[2 + location]);
+		if ((fwd == 1 && location <= (size+112)) || (fwd == 0 && location == 0)) {
+			fwd = 1;
+			location++;
+		} else {
+			fwd = 0;
+			location--;
+		}
 	}
+	// writePixels(16, 2, (unsigned char*) SmileN);
+	// writePixels(26, 2, (unsigned char*) SmileW);
+	// scrollingDudes();
+	// writeSineWave();
+
 	return 0;
-}
-
-void initRPi() {
-	initOuputPin(WR);
-	initPBusyPin();
-	digitalWrite(WR, LOW);
-	register unsigned char i;
-	for (i = 0; i < 8; ++i) {
-		initOuputPin(dataPins[i]);
-	}
-}
-
-void initOuputPin(int pin) {
-	char command[50];
-	sprintf(command, "/usr/local/bin/gpio export %d out", pin);
-	system(command);
-}
-
-void initPBusyPin() {
-	char command[50];
-	sprintf(command, "/usr/local/bin/gpio edge %d falling", PBUSY);
-	system(command);
-}
-
-void initVfd(void) {
-	writeCommand((unsigned char*) CMD_InitialiseDisplay);
-	writeCommand((unsigned char*) CMD_OverwriteMode);
-	writeCommand((unsigned char*) CMD_BrightnessLevel);
-
-	writeCommand((unsigned char*) CMD_Proportional);
-	writeCommand((unsigned char*) CMD_WholeScreenMode);
-	writeCommand((unsigned char*) CMD_DisplayClear);
-	writeCommand((unsigned char*) CMD_Home);
-}
-
-void writeString(char *data) {
-	register unsigned int i = 0;
-	while (data[i] != 0) {
-		writeByte(data[i]);
-		i++;
-	}
-}
-
-void writeCommand(unsigned char *data) {
-	int cmdLength = data[0];
-
-	register unsigned char i;
-	for (i = 1; i <= cmdLength; ++i) {
-		writeByte(data[i]);
-	}
-}
-
-void writeByte(unsigned char data) {
-	register unsigned char i;
-	register unsigned char myData = data;
-
-	for (i = 0; i < 8; ++i) {
-		digitalWrite(dataPins[i], (myData & 1));
-		myData >>= 1;
-	}
-	latchDataToVfd();
-}
-
-void latchDataToVfd(void) {
-	delayNanoSeconds(101); // min 100ns since last write, 50ns since data lines settled.
-	digitalWrite(WR, HIGH); // Trigger module to read
-	waitForInterrupt(PBUSY, -1);
-	delayNanoSeconds(101);
-	digitalWrite(WR, LOW);
-}
-
-void delayNanoSeconds(int nanoseconds) {
-	struct timespec tim, tim2;
-	tim.tv_sec = 0;
-	tim.tv_nsec = nanoseconds;
-	nanosleep(&tim, &tim2);
 }

@@ -27,6 +27,7 @@
 								<option id="gnu.c.compiler.option.include.paths.950321893" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="/data/programming/raspberry/wiringPi/wiringPi"/>
 								</option>
+								<option id="gnu.c.compiler.option.misc.other.1520116661" superClass="gnu.c.compiler.option.misc.other" value="-c -fmessage-length=0 -std=c99" valueType="string"/>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.492105509" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.cross.cpp.compiler.960196918" name="Cross G++ Compiler" superClass="cdt.managedbuild.tool.gnu.cross.cpp.compiler">
@@ -36,6 +37,7 @@
 							<tool id="cdt.managedbuild.tool.gnu.cross.c.linker.1564177208" name="Cross GCC Linker" superClass="cdt.managedbuild.tool.gnu.cross.c.linker">
 								<option id="gnu.c.link.option.libs.954826486" name="Libraries (-l)" superClass="gnu.c.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="wiringPi"/>
+									<listOptionValue builtIn="false" value="m"/>
 								</option>
 								<option id="gnu.c.link.option.paths.1672493443" name="Library search path (-L)" superClass="gnu.c.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/wiringPi_arm}&quot;"/>
@@ -124,4 +126,5 @@
 			<resource resourceType="PROJECT" workspacePath="/vfd"/>
 		</configuration>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cproject>
