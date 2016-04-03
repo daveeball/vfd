@@ -2,8 +2,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include "wiringPi.h"
+
+#include "font5x7.h"
 #include "futabaVfd.h"
 
 #define	WR	  23 // header pin 16
@@ -31,7 +34,7 @@ static const unsigned char CMD_OverwriteMode[3] = /****/{ 2, 0x1F, 0x01 };
 static const unsigned char CMD_HorizontalScrollMode[3] = { 2, 0x1F, 0x03 };
 static const unsigned char CMD_ReverseCancel[4] = /****/{ 3, 0x1F, 0x72, 0x00 };
 static const unsigned char CMD_ReverseApply[4] = /*****/{ 3, 0x1F, 0x72, 0x01 };
-static const unsigned char CMD_BrightnessLevel[4] = /**/{ 3, 0x1F, 0x58, 0x08 }; // 0x04=[50%], 0x08=[100%]
+static const unsigned char CMD_BrightnessLevel[4] = /**/{ 3, 0x1F, 0x58, 0x00 }; // 0x04=[50%], 0x08=[100%]
 static const unsigned char CMD_Proportional[6] = /*****/{ 5, 0x1F, 0x28, 0x67, 0x03, 0x02 };
 static const unsigned char CMD_MagnifyWide[7] = /******/{ 6, 0x1F, 0x28, 0x67, 0x40, 0x03, 0x01 };
 static const unsigned char CMD_MagnifyNormal[7] = /****/{ 6, 0x1F, 0x28, 0x67, 0x40, 0x01, 0x01 };
@@ -39,6 +42,55 @@ static const unsigned char CMD_MagnifyHuge[7] = /******/{ 6, 0x1F, 0x28, 0x67, 0
 static const unsigned char CMD_WholeScreenMode[6] = /**/{ 5, 0x1F, 0x28, 0x77, 0x10, 0x01 };
 static const unsigned char CMD_Blink_fast[9] = /*******/{ 8, 0x1F, 0x28, 0x61, 0x11, 0x02, 0x02, 0x01, 0x00 };
 static const unsigned char CMD_Blink_slow[9] = /*******/{ 8, 0x1F, 0x28, 0x61, 0x11, 0x02, 0x20, 0x10, 0x00 };
+
+/////////////////////////////////////////////////////////
+
+unsigned char* buildStringData(const char *text) {
+	printf("Rendering %s\n", text);
+	register unsigned int length = 0;
+	while (text[length] != 0) {
+		length++;
+	}
+	unsigned char *pixels = malloc(length * 6 * sizeof(unsigned char));
+
+	register unsigned int i = 0;
+	register unsigned int c = 0;
+	while (text[c] != 0) {
+		if (text[c] == 32) {
+			pixels[i++] = 0x00; // three pixel space.
+			pixels[i++] = 0x00;
+			pixels[i++] = 0x00;
+		} else if(text[c] < 255){
+			int position = ((text[c] - 32)*5);
+			for (unsigned char d = 0; d < 5; d++) {
+				unsigned char byte = Font5x7[position + d];
+				if (byte > 0) {
+					pixels[i++] = byte;
+				}
+			}
+			pixels[i++] = 0x00; // one pixel gap.
+		}
+		c++;
+	}
+
+	if (i > (255 * 255)) {
+		fprintf(stderr, "Error - too many pixels to render...\n");
+		i = 255 * 255;
+	}
+
+	unsigned char *data = malloc((2 + i + 224) * sizeof(unsigned char));
+	data[0] = (i & 0xFF); //#no of pixels
+	data[1] = ((i >> 8) & 0xFF); //#no of pixels
+
+	// TODO more efficient copy?
+	for (int p = 0; p <= i; p++) {
+		data[p + 2 + 112] = pixels[p];
+	}
+	memset(&data[2], 0, 112 * sizeof(unsigned char));
+	memset(&data[2 + i + 112], 0, 112 * sizeof(unsigned char));
+
+	return data;
+}
 
 /////////////////////////////////////////////////////////
 
@@ -131,8 +183,12 @@ void selectWindow(char windowId) {
 }
 
 void writePixels(int width, int height, unsigned char* bytes) {
+	if(width <1 || width>511){
+		fprintf(stderr, "Graphics width must be between 1 and 511\n");
+		return;
+	}
 	if (height < 1 || height > 2) {
-		fprintf(stderr, "Cursor Y-position must be 1 or 2\n");
+		fprintf(stderr, "Graphics height must be 1 or 2\n");
 		return;
 	}
 
@@ -153,6 +209,11 @@ void writeScreen(unsigned char * bytes) {
 	writeCommand((unsigned char*) CMD_Home);
 	int x = 112, y = 2;
 	writePixels(x, y, bytes);
+}
+
+void clearScreen() {
+	writeCommand((unsigned char*) CMD_DisplayClear);
+	writeCommand((unsigned char*) CMD_Home);
 }
 
 /////////////////////////////////////////////////////////
@@ -191,7 +252,7 @@ void initVfd(void) {
 	writeCommand((unsigned char*) CMD_Home);
 }
 
-void writeString(char *data) {
+void writeString(const char *data) {
 	register unsigned int i = 0;
 	while (data[i] != 0) {
 		writeByte(data[i]);
@@ -215,16 +276,17 @@ void writeByte(unsigned char data) {
 	for (i = 0; i < 8; ++i) {
 		digitalWrite(dataPins[i], (myData & 1));
 		myData >>= 1;
+//		delayNanoSeconds(2);
 	}
 	latchDataToVfd();
 }
 
 void latchDataToVfd(void) {
-	delayNanoSeconds(101); // min 100ns since last write, 50ns since data lines settled.
 	digitalWrite(WR, HIGH); // Trigger module to read
 	waitForInterrupt(PBUSY, -1);
-	delayNanoSeconds(101);
+	delayNanoSeconds(10);
 	digitalWrite(WR, LOW);
+	delayNanoSeconds(10);
 }
 
 void delayNanoSeconds(int nanoseconds) {
@@ -234,4 +296,3 @@ void delayNanoSeconds(int nanoseconds) {
 	tim.tv_nsec = nanoseconds;
 	nanosleep(&tim, &tim2);
 }
-

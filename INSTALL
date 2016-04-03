@@ -1,0 +1,32 @@
+
+
+From your RaspberryPi
+
+1) Install dependencies
+
+	sudo apt-get install git-core automake build-essential libtool doxygen
+	
+	git clone git://git.drogon.net/wiringPi
+	cd wiringPi
+	./build
+	
+	git clone  git://git.musicpd.org/master/libmpdclient.git
+	cd libmpdclient
+	./autogen.sh
+	./configure
+	sudo make install
+
+2) compile & deploy.
+	TODO
+
+
+===============================================================
+Setting up a dev environment for remote debugging from eclipse
+(These are my notes, and aren't expected to be useful to anyone else - don't ask me for help)
+
+copy the following from /usr/local/lib/ to your desktop development environment (saves cross compiling)
+	libmpdclient.so.2.0.11
+	libwiringPiDev.so.2.32
+	libwiringPi.so.2.32
+	
+	

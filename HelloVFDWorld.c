@@ -5,11 +5,15 @@
  *      Author: daveb
  */
 
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "font5x7.h"
+#include <mpd/client.h>
+#include <mpd/tag.h>
+#include <sys/time.h>
+
 #include "futabaVfd.h"
 
 //static const unsigned char Smile[32] = /***/{ 0x07, 0x1E, 0x30, 0x60, 0x40, 0xCC, 0xCC, 0x80, 0x80, 0xCC,
@@ -96,54 +100,10 @@ void writeSineWave() {
 	}
 }
 
-unsigned char* buildStringData(char *text) {
-	register unsigned int length = 0;
-	while (text[length] != 0) {
-		length++;
-	}
-	unsigned char *pixels = malloc(length * 6 * sizeof(unsigned char));
-
-	register unsigned int i = 0;
-	register unsigned int c = 0;
-	while (text[c] != 0) {
-		if (text[c] == 32) { //space
-			pixels[i++] = 0x00; // one pixel gap.
-			pixels[i++] = 0x00; // one pixel gap.
-		} else {
-			for (unsigned char d = 0; d < 5; d++) {
-				unsigned char position = text[c] - 32;
-				unsigned char byte = Font5x7[(position * 5) + d];
-				if (byte > 0) {
-					pixels[i++] = byte;
-				}
-			}
-		}
-		pixels[i++] = 0x00; // one pixel gap.
-		c++;
-	}
-
-	if (i > (255 * 255)) {
-		fprintf(stderr, "Error - too many pixels to render...");
-		i = 255 * 255;
-	}
-
-	unsigned char *data = malloc((2 + i + 224) * sizeof(unsigned char));
-	data[0] = (i & 0xFF); //#no of pixels
-	data[1] = ((i >> 8) & 0xFF); //#no of pixels
-
-	// TODO more efficient copy?
-	for (unsigned char p = 0; p <= i; p++) {
-		data[p + 2 + 112] = pixels[p];
-	}
-	memset(&data[2], 0, 112 * sizeof(unsigned char));
-	memset(&data[2 + i + 112], 0, 112 * sizeof(unsigned char));
-
-	return data;
-}
-
 // sudo apt-get install wiringpi (or install from source)
 // sudo usermod -a gpio [username]
-int main(void) {
+//int main(void) {
+int hello_main() {
 
 	initRPi();
 	initVfd();
@@ -151,21 +111,20 @@ int main(void) {
 	writeString("This is static text");
 	setCursor(0, 1);
 
-	unsigned char *buffer = buildStringData("Hello scrolling world!!!!");
+	unsigned char *buffer = buildStringData("");
 	int size = (buffer[1] * 256) + buffer[0];
-	writePixels(size, 1, &buffer[2 + 112]);
 
 	int fwd = 1;
 	int location = 0;
 	for (;;) {
 		writePixels(112, 1, &buffer[2 + location]);
-		if ((fwd == 1 && location <= (size+112)) || (fwd == 0 && location == 0)) {
+		if ((fwd == 1 && location <= (size + 112)) || (fwd == 0 && location == 0)) {
 			fwd = 1;
 			location++;
 		} else {
-			fwd = 0;
-			location--;
+			location = 0;
 		}
+		delayNanoSeconds(10000000);
 	}
 	// writePixels(16, 2, (unsigned char*) SmileN);
 	// writePixels(26, 2, (unsigned char*) SmileW);

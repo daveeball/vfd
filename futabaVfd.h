@@ -4,9 +4,11 @@ void initOuputPin(int);
 void initPBusyPin(void);
 void initVfd(void);
 
+unsigned char* buildStringData(const char *);
 void writeScreen(unsigned char *);
+void clearScreen(void);
 void writePixels(int, int, unsigned char *);
-void writeString(char *);
+void writeString(const char *);
 void setCursor(int, int);
 void writeCommand(unsigned char *);
 void writeByte(unsigned char);
