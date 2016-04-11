@@ -1,8 +1,7 @@
 
 void initRPi(void);
-void initOuputPin(int);
-void initPBusyPin(void);
 void initVfd(void);
+void shutdownVfd(void);
 
 unsigned char* buildStringData(const char *);
 void writeScreen(unsigned char *);
@@ -19,3 +18,6 @@ void delayMilliSeconds(int);
 void scroll(int);
 void selectWindow(char);
 void defineWindow(char, int, int, int, int);
+
+
+void writeDude(void);

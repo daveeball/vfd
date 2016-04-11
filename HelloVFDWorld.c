@@ -50,9 +50,9 @@ void writeDude() {
 
 void scrollingDudes() {
 	int i;
-	for (i = 1; i <= 17; i++) {
-		writeDude();
+	for (i = 0; i <= 17; i++) {
 		setCursor((30 * i), 0);
+		writeDude();
 		delayNanoSeconds(25000000);
 	}
 
@@ -108,27 +108,27 @@ int hello_main() {
 	initRPi();
 	initVfd();
 
-	writeString("This is static text");
-	setCursor(0, 1);
+//	writeString("This is static text");
+//	setCursor(0, 1);
 
-	unsigned char *buffer = buildStringData("");
-	int size = (buffer[1] * 256) + buffer[0];
-
-	int fwd = 1;
-	int location = 0;
-	for (;;) {
-		writePixels(112, 1, &buffer[2 + location]);
-		if ((fwd == 1 && location <= (size + 112)) || (fwd == 0 && location == 0)) {
-			fwd = 1;
-			location++;
-		} else {
-			location = 0;
-		}
-		delayNanoSeconds(10000000);
-	}
-	// writePixels(16, 2, (unsigned char*) SmileN);
+//	unsigned char *buffer = buildStringData("");
+//	int size = (buffer[1] * 256) + buffer[0];
+//
+//	int fwd = 1;
+//	int location = 0;
+//	for (;;) {
+//		writePixels(112, 1, &buffer[2 + location]);
+//		if ((fwd == 1 && location <= (size + 112)) || (fwd == 0 && location == 0)) {
+//			fwd = 1;
+//			location++;
+//		} else {
+//			location = 0;
+//		}
+//		delayNanoSeconds(10000000);
+//	}
+//	 writePixels(16, 2, (unsigned char*) SmileN);
 	// writePixels(26, 2, (unsigned char*) SmileW);
-	// scrollingDudes();
+	 scrollingDudes();
 	// writeSineWave();
 
 	return 0;

@@ -26,22 +26,22 @@ static const int dataPins[8] = { D0, D1, D2, D3, D4, D5, D6, D7 };
 //////////////////////////
 // Commands - taken from datasheet.
 // Fist value is the number of instructions in a command (including data)
-static const unsigned char CMD_LineFeed[2] = /*********/{ 1, 0x0A };
 static const unsigned char CMD_Home[2] = /*************/{ 1, 0x0B };
 static const unsigned char CMD_DisplayClear[2] = /*****/{ 1, 0x0C };
 static const unsigned char CMD_InitialiseDisplay[3] = { 2, 0x1B, 0x40 };
-static const unsigned char CMD_OverwriteMode[3] = /****/{ 2, 0x1F, 0x01 };
 static const unsigned char CMD_HorizontalScrollMode[3] = { 2, 0x1F, 0x03 };
-static const unsigned char CMD_ReverseCancel[4] = /****/{ 3, 0x1F, 0x72, 0x00 };
-static const unsigned char CMD_ReverseApply[4] = /*****/{ 3, 0x1F, 0x72, 0x01 };
 static const unsigned char CMD_BrightnessLevel[4] = /**/{ 3, 0x1F, 0x58, 0x00 }; // 0x04=[50%], 0x08=[100%]
 static const unsigned char CMD_Proportional[6] = /*****/{ 5, 0x1F, 0x28, 0x67, 0x03, 0x02 };
-static const unsigned char CMD_MagnifyWide[7] = /******/{ 6, 0x1F, 0x28, 0x67, 0x40, 0x03, 0x01 };
-static const unsigned char CMD_MagnifyNormal[7] = /****/{ 6, 0x1F, 0x28, 0x67, 0x40, 0x01, 0x01 };
-static const unsigned char CMD_MagnifyHuge[7] = /******/{ 6, 0x1F, 0x28, 0x67, 0x40, 0x02, 0x02 };
 static const unsigned char CMD_WholeScreenMode[6] = /**/{ 5, 0x1F, 0x28, 0x77, 0x10, 0x01 };
-static const unsigned char CMD_Blink_fast[9] = /*******/{ 8, 0x1F, 0x28, 0x61, 0x11, 0x02, 0x02, 0x01, 0x00 };
-static const unsigned char CMD_Blink_slow[9] = /*******/{ 8, 0x1F, 0x28, 0x61, 0x11, 0x02, 0x20, 0x10, 0x00 };
+//static const unsigned char CMD_LineFeed[2] = /*********/{ 1, 0x0A };
+//static const unsigned char CMD_OverwriteMode[3] = /****/{ 2, 0x1F, 0x01 };
+//static const unsigned char CMD_ReverseCancel[4] = /****/{ 3, 0x1F, 0x72, 0x00 };
+//static const unsigned char CMD_ReverseApply[4] = /*****/{ 3, 0x1F, 0x72, 0x01 };
+//static const unsigned char CMD_MagnifyWide[7] = /******/{ 6, 0x1F, 0x28, 0x67, 0x40, 0x03, 0x01 };
+//static const unsigned char CMD_MagnifyNormal[7] = /****/{ 6, 0x1F, 0x28, 0x67, 0x40, 0x01, 0x01 };
+//static const unsigned char CMD_MagnifyHuge[7] = /******/{ 6, 0x1F, 0x28, 0x67, 0x40, 0x02, 0x02 };
+//static const unsigned char CMD_Blink_fast[9] = /*******/{ 8, 0x1F, 0x28, 0x61, 0x11, 0x02, 0x02, 0x01, 0x00 };
+//static const unsigned char CMD_Blink_slow[9] = /*******/{ 8, 0x1F, 0x28, 0x61, 0x11, 0x02, 0x20, 0x10, 0x00 };
 
 /////////////////////////////////////////////////////////
 
@@ -60,8 +60,8 @@ unsigned char* buildStringData(const char *text) {
 			pixels[i++] = 0x00; // three pixel space.
 			pixels[i++] = 0x00;
 			pixels[i++] = 0x00;
-		} else if(text[c] < 255){
-			int position = ((text[c] - 32)*5);
+		} else if (text[c] < 255) {
+			int position = ((text[c] - 32) * 5);
 			for (unsigned char d = 0; d < 5; d++) {
 				unsigned char byte = Font5x7[position + d];
 				if (byte > 0) {
@@ -183,7 +183,7 @@ void selectWindow(char windowId) {
 }
 
 void writePixels(int width, int height, unsigned char* bytes) {
-	if(width <1 || width>511){
+	if (width < 1 || width > 511) {
 		fprintf(stderr, "Graphics width must be between 1 and 511\n");
 		return;
 	}
@@ -218,17 +218,6 @@ void clearScreen() {
 
 /////////////////////////////////////////////////////////
 
-void initRPi() {
-	wiringPiSetupSys();
-	initOuputPin(WR);
-	initPBusyPin();
-	digitalWrite(WR, LOW);
-	register unsigned char i;
-	for (i = 0; i < 8; ++i) {
-		initOuputPin(dataPins[i]);
-	}
-}
-
 void initOuputPin(int pin) {
 	char command[50];
 	sprintf(command, "/usr/local/bin/gpio export %d out", pin);
@@ -241,6 +230,17 @@ void initPBusyPin() {
 	system(command);
 }
 
+void initRPi() {
+	wiringPiSetupSys();
+	initOuputPin(WR);
+	initPBusyPin();
+	digitalWrite(WR, LOW);
+	register unsigned char i;
+	for (i = 0; i < 8; ++i) {
+		initOuputPin(dataPins[i]);
+	}
+}
+
 void initVfd(void) {
 	writeCommand((unsigned char*) CMD_InitialiseDisplay);
 	writeCommand((unsigned char*) CMD_HorizontalScrollMode);
@@ -250,6 +250,11 @@ void initVfd(void) {
 	writeCommand((unsigned char*) CMD_WholeScreenMode);
 	writeCommand((unsigned char*) CMD_DisplayClear);
 	writeCommand((unsigned char*) CMD_Home);
+}
+
+void shutdownVfd() {
+	printf("Shutdown...");
+	// Nothing to do here.
 }
 
 void writeString(const char *data) {
@@ -276,7 +281,9 @@ void writeByte(unsigned char data) {
 	for (i = 0; i < 8; ++i) {
 		digitalWrite(dataPins[i], (myData & 1));
 		myData >>= 1;
-//		delayNanoSeconds(2);
+		if (i % 2 == 0) {
+			delayNanoSeconds(1);
+		}
 	}
 	latchDataToVfd();
 }
@@ -284,9 +291,9 @@ void writeByte(unsigned char data) {
 void latchDataToVfd(void) {
 	digitalWrite(WR, HIGH); // Trigger module to read
 	waitForInterrupt(PBUSY, -1);
-	delayNanoSeconds(10);
+	delayNanoSeconds(1);
 	digitalWrite(WR, LOW);
-	delayNanoSeconds(10);
+	delayNanoSeconds(1);
 }
 
 void delayNanoSeconds(int nanoseconds) {
