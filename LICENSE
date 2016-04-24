@@ -26,10 +26,10 @@ mpdvfd
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    
    
-The following software is included (in part) in mpdvfd
-wiringPi
+The following software is used (unmodified) by mpdvfd
+bcm2835
 --------
-   Licensed under GNU LESSER GENERAL PUBLIC LICENSE. See LICENSE.WiringPi
+   Licensed under GNU GENERAL PUBLIC LICENSE. See LICENSE.bcm2835
 
 libmdpclient
 ------------

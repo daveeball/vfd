@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "wiringPi.h"
+#include "bcm2835.h"
 
 #include "font5x7.h"
 #include "futabaVfd.h"
@@ -43,6 +43,11 @@ static const unsigned char CMD_WholeScreenMode[6] = /**/{ 5, 0x1F, 0x28, 0x77, 0
 //static const unsigned char CMD_Blink_fast[9] = /*******/{ 8, 0x1F, 0x28, 0x61, 0x11, 0x02, 0x02, 0x01, 0x00 };
 //static const unsigned char CMD_Blink_slow[9] = /*******/{ 8, 0x1F, 0x28, 0x61, 0x11, 0x02, 0x20, 0x10, 0x00 };
 
+/////////////////////////////////////////////////////////
+// Private
+void latchDataToVfd(void);
+void writeByte(unsigned char);
+void writeCommand(unsigned char *);
 /////////////////////////////////////////////////////////
 
 unsigned char* buildStringData(const char *text) {
@@ -105,10 +110,6 @@ void scroll(int pixels) {
 	writeCommand(cmd);
 }
 
-void delayMilliSeconds(int milliSeconds) {
-	delayMicroseconds(milliSeconds * 1000L);
-}
-
 void setCursor(int x, int y) {
 	if (y > 1) {
 		fprintf(stderr, "Cursor Y-position must be 0 or 1\n");
@@ -120,65 +121,6 @@ void setCursor(int x, int y) {
 	}
 
 	unsigned char cmd[7] = { 6, 0x1F, 0x24, (x & 0xFF), ((x >> 8) & 0xFF), (y & 0xFF), ((y >> 8) & 0xFF) };
-	writeCommand(cmd);
-}
-
-void defineWindow(char windowId, int x, int y, int width, int height) {
-	if (windowId < 1 || windowId > 4) {
-		fprintf(stderr, "Windows only support ID's 1-4.\n");
-		return;
-	}
-	if (x > 511) {
-		fprintf(stderr, "Window left-edge must be within the screen area (less than 512)\n");
-		return;
-	}
-	if (y > 1) {
-		fprintf(stderr, "Window top-edge must be within the screen area (0 or 1)\n");
-		return;
-	}
-	if (x + width > 512) {
-		fprintf(stderr, "Window right-edge must be within the screen area (less than 513)\n");
-		return;
-	}
-	if (y + height > 2) {
-		fprintf(stderr, "Window bottom-edge must be within the screen area (less than 2)\n");
-		return;
-	}
-
-	unsigned char i = 0;
-	unsigned char cmd[15];
-	cmd[i++] = 14; // # of bytes
-	cmd[i++] = 0x1F;
-	cmd[i++] = 0x28;
-	cmd[i++] = 0x77;
-	cmd[i++] = 0x02; // Classify (define or delete)
-	cmd[i++] = (char) windowId;
-	cmd[i++] = 0x01; // Define
-	cmd[i++] = (char) x & 0xFF; // xL
-	cmd[i++] = (char) (x >> 8) & 0xFF; // xH
-	cmd[i++] = (char) y; // yL
-	cmd[i++] = 0x00;     // yH
-	cmd[i++] = (char) width & 0xFF; // xL
-	cmd[i++] = (char) (width >> 8) & 0xFF; // xH
-	cmd[i++] = (char) height; // yL
-	cmd[i++] = 0x00;     // yH
-
-	writeCommand(cmd);
-}
-
-void selectWindow(char windowId) {
-	if (windowId < 1 || windowId > 4) {
-		fprintf(stderr, "Windows only support ID's 1-4.\n");
-		return;
-	}
-	unsigned char i = 0;
-	unsigned char cmd[6];
-	cmd[i++] = 5; // # of bytes
-	cmd[i++] = 0x1F;
-	cmd[i++] = 0x28;
-	cmd[i++] = 0x77;
-	cmd[i++] = 0x01;
-	cmd[i++] = (char) windowId;
 	writeCommand(cmd);
 }
 
@@ -205,12 +147,6 @@ void writePixels(int width, int height, unsigned char* bytes) {
 	}
 }
 
-void writeScreen(unsigned char * bytes) {
-	writeCommand((unsigned char*) CMD_Home);
-	int x = 112, y = 2;
-	writePixels(x, y, bytes);
-}
-
 void clearScreen() {
 	writeCommand((unsigned char*) CMD_DisplayClear);
 	writeCommand((unsigned char*) CMD_Home);
@@ -219,22 +155,24 @@ void clearScreen() {
 /////////////////////////////////////////////////////////
 
 void initOuputPin(int pin) {
-	char command[50];
-	sprintf(command, "/usr/local/bin/gpio export %d out", pin);
-	system(command);
+	bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_OUTP);
 }
 
 void initPBusyPin() {
-	char command[50];
-	sprintf(command, "/usr/local/bin/gpio edge %d falling", PBUSY);
-	system(command);
+	bcm2835_gpio_fsel(PBUSY, BCM2835_GPIO_FSEL_INPT);
+	bcm2835_gpio_fen(PBUSY);
+	// Clear the flag.
+	bcm2835_gpio_set_eds(PBUSY);
 }
 
 void initRPi() {
-	wiringPiSetupSys();
+	if (!bcm2835_init()) {
+		fprintf(stderr, "Failed to initialise GPIO access.\n");
+		return;
+	}
 	initOuputPin(WR);
 	initPBusyPin();
-	digitalWrite(WR, LOW);
+	bcm2835_gpio_write(WR, LOW);
 	register unsigned char i;
 	for (i = 0; i < 8; ++i) {
 		initOuputPin(dataPins[i]);
@@ -254,7 +192,7 @@ void initVfd(void) {
 
 void shutdownVfd() {
 	printf("Shutdown...");
-	// Nothing to do here.
+	bcm2835_close();
 }
 
 void writeString(const char *data) {
@@ -279,27 +217,36 @@ void writeByte(unsigned char data) {
 	register unsigned char myData = data;
 
 	for (i = 0; i < 8; ++i) {
-		digitalWrite(dataPins[i], (myData & 1));
+		bcm2835_gpio_write(dataPins[i], (myData & 1));
 		myData >>= 1;
-		if (i % 2 == 0) {
-			delayNanoSeconds(1);
-		}
 	}
 	latchDataToVfd();
 }
 
+void waitForPBusy() {
+	do {
+		delayNanoSeconds(1000);
+	} while (!bcm2835_gpio_eds(PBUSY));
+	// Clear the flag.
+	bcm2835_gpio_set_eds(PBUSY);
+}
+
 void latchDataToVfd(void) {
-	digitalWrite(WR, HIGH); // Trigger module to read
-	waitForInterrupt(PBUSY, -1);
-	delayNanoSeconds(1);
-	digitalWrite(WR, LOW);
-	delayNanoSeconds(1);
+	bcm2835_gpio_write(WR, HIGH); // Trigger module to read
+	waitForPBusy();
+	bcm2835_gpio_write(WR, LOW);
 }
 
 void delayNanoSeconds(int nanoseconds) {
+	// This won't actually be reliable for small number of nanoseconds. It allows the OS to decide when I should run again, with a wait of AT LEAST the requested time.
 	struct timespec tim;
 	struct timespec tim2;
 	tim.tv_sec = 0;
 	tim.tv_nsec = nanoseconds;
 	nanosleep(&tim, &tim2);
+}
+
+void delayMilliSeconds(int milliseconds) {
+	// This is also unreliable.
+	bcm2835_delay(milliseconds);
 }

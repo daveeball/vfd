@@ -86,15 +86,15 @@ void writeSineWave() {
 		data[i] = (unsigned char) ((sinValue >> 8) & 0xFF);
 		data[112 + i] = (unsigned char) (sinValue & 0xFF);
 	}
-	writeScreen(data);
+//	writeScreen(data);
 	i = 0;
 	for (;;) {
 		if (i++ % 2 == 0) {
 			doScroll(data, scrollBuffer);
-			writeScreen(scrollBuffer);
+//			writeScreen(scrollBuffer);
 		} else {
 			doScroll(scrollBuffer, data);
-			writeScreen(data);
+//			writeScreen(data);
 		}
 		delayNanoSeconds(100);
 	}

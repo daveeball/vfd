@@ -6,9 +6,12 @@ From your RaspberryPi
 
 	sudo apt-get install git-core automake build-essential libtool doxygen
 	
-	git clone git://git.drogon.net/wiringPi
-	cd wiringPi
-	./build
+	wget http://www.airspayce.com/mikem/bcm2835/bcm2835-1.50.tar.gz
+	tar zxvf bcm2835-1.50.tar.gz
+	cd bcm2835-1.50/
+	./configure
+	make
+	sudo make install (not neccesary as we're)
 	
 	git clone  git://git.musicpd.org/master/libmpdclient.git
 	cd libmpdclient
@@ -26,7 +29,14 @@ Setting up a dev environment for remote debugging from eclipse
 
 copy the following from /usr/local/lib/ to your desktop development environment (saves cross compiling)
 	libmpdclient.so.2.0.11
-	libwiringPiDev.so.2.32
-	libwiringPi.so.2.32
+	libbcm2835.a
 	
 	
+	
+
+	
+Setup to autorun using daemon tools:
+	http://raspberrypi.stackexchange.com/questions/28199/raspberry-pi-starting-programs-automatically-on-startup
+
+	NOTE: I found that the first time my app is run like this after the pi has booted, it failes to connect to the VFD.
+	I added a crontab [@reboot sleep 5; killall vfd;] after which daemontools restarts vfd and all is good.

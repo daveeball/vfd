@@ -25,7 +25,6 @@
 								<option defaultValue="gnu.c.optimization.level.none" id="gnu.c.compiler.option.optimization.level.1103483616" name="Optimization Level" superClass="gnu.c.compiler.option.optimization.level" useByScannerDiscovery="false" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.debugging.level.1969137093" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" useByScannerDiscovery="false" value="gnu.c.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.include.paths.950321893" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="/data/programming/raspberry/wiringPi/wiringPi"/>
 									<listOptionValue builtIn="false" value="/data/programming/raspberry/libmpdclient/include"/>
 								</option>
 								<option id="gnu.c.compiler.option.misc.other.1520116661" name="Other flags" superClass="gnu.c.compiler.option.misc.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -std=gnu99" valueType="string"/>
@@ -39,8 +38,8 @@
 							<tool id="cdt.managedbuild.tool.gnu.cross.c.linker.1564177208" name="Cross GCC Linker" superClass="cdt.managedbuild.tool.gnu.cross.c.linker">
 								<option id="gnu.c.link.option.libs.954826486" name="Libraries (-l)" superClass="gnu.c.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="m"/>
+									<listOptionValue builtIn="false" value="bcm2835"/>
 									<listOptionValue builtIn="false" value="mpdclient"/>
-									<listOptionValue builtIn="false" value="wiringPi"/>
 								</option>
 								<option id="gnu.c.link.option.paths.1672493443" name="Library search path (-L)" superClass="gnu.c.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="${workspace_loc:/${ProjName}/library_arm/}"/>

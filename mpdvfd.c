@@ -1,8 +1,7 @@
 /*
- * HelloVFDWorld.c
+ * mpdvfd.c
  *
- *  Created on: 13 Mar 2016
- *      Author: daveb
+ * MPD client that displays current song on a Futaba VFD.
  */
 
 #include <assert.h>
@@ -117,11 +116,7 @@ int differentSongUri(struct mpd_song* songOne, struct mpd_song* songTwo) {
 	return sameUri != 0;
 }
 
-// sudo apt-get install wiringpi (or install from source)
-// sudo usermod -a gpio [username]
-// sudo usermod -a dialout [username]
 int main(void) {
-//int mpd_main(void) {
 
 	initRPi();
 	initVfd();
@@ -130,9 +125,6 @@ int main(void) {
 	setCursor(12, 0);
 	writeLogo();
 	delayMilliSeconds(10000);
-
-	clearScreen();
-	writeString("Now playing...");
 
 	struct mpd_connection *conn;
 	conn = mpd_connection_new(NULL, 0, 30000);
@@ -171,7 +163,7 @@ int main(void) {
 		} else {
 			location = 0;
 		}
-		// delayNanoSeconds(10000);
+		delayMilliSeconds(50);
 	}
 
 	shutdownVfd();
